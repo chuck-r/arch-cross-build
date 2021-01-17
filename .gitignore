@@ -1,0 +1,7 @@
+*.zst
+*.xz
+*.gz
+*.bz2
+*.sig
+src/*
+pkg/*
