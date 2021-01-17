@@ -10,9 +10,11 @@ license=(GPL2 LGPL2.1)
 url="http://wiki.qemu.org/"
 depends=()
 makedepends=(python meson glib2-static pcre-static)
-source=(https://download.qemu.org/qemu-$pkgver.tar.xz{,.sig})
+source=(https://download.qemu.org/qemu-$pkgver.tar.xz{,.sig}
+        fix-proc-self-exe.patch)
 sha512sums=('bddd633ce111471ebc651e03080251515178808556b49a308a724909e55dac0be0cc0c79c536ac12d239678ae94c60100dc124be9b9d9538340c03a2f27177f3'
-            'SKIP')
+            'SKIP'
+            'afc461af5521765bb5511dd846173c582f17df18c7ca2748084b29e971450eccd45b01a819b1b423550320314db123acc48d3d6c2c6d4597df02421fb7a1268a')
 validpgpkeys=('CEACC9E15534EBABB82D3FA03353C9CEF108B584')
 
 case $CARCH in
@@ -83,6 +85,12 @@ package() {
   options=(!strip)
 
   make -C build-user-static DESTDIR="$pkgdir" install "${@:2}"
+
+  #Copy the qemu-binfmt-conf.sh script so that the user can run
+  #i.e. /usr/lib/qemu-binfmt-conf.sh --systemd arm --persist yes
+  #in order to install the virtualization handler.
+  mkdir -p "$pkgdir/usr/lib/qemu-user-static/"
+  cp qemu-${pkgver}/scripts/qemu-binfmt-conf.sh "$pkgdir/usr/lib/qemu-user-static"
 
   # remove conflicting /var/run directory
   cd "$pkgdir"

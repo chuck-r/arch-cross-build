@@ -1,0 +1,187 @@
+--- a/qemu-5.2.0/linux-user/main.c	2021-01-12 00:29:41.544939629 -0600
++++ b/qemu-5.2.0/linux-user/main.c	2021-01-12 06:47:37.766886301 -0600
+@@ -543,72 +543,105 @@
+     exit(exitcode);
+ }
+ 
+-static int parse_args(int argc, char **argv)
++static int parse_args(int* argc, char **argv, char** environ, char*** newargv)
+ {
+     const char *r;
+-    int optind;
+     const struct qemu_argument *arginfo;
++    int optind = 1;
+ 
+-    for (arginfo = arg_table; arginfo->handle_opt != NULL; arginfo++) {
+-        if (arginfo->env == NULL) {
+-            continue;
+-        }
++    optind = 1;
+ 
+-        r = getenv(arginfo->env);
+-        if (r != NULL) {
+-            arginfo->handle_opt(r);
+-        }
+-    }
++    //If argv[0] is "/proc/self/exe", then the program called itself that way and expects
++    //to get all of the arguments. So, no argument processing.
++    if (strcmp(argv[0], "/proc/self/exe"))
++    {
++        for (arginfo = arg_table; arginfo->handle_opt != NULL; arginfo++) {
++            if (arginfo->env == NULL) {
++                continue;
++            }
+ 
+-    optind = 1;
+-    for (;;) {
+-        if (optind >= argc) {
+-            break;
+-        }
+-        r = argv[optind];
+-        if (r[0] != '-') {
+-            break;
+-        }
+-        optind++;
+-        r++;
+-        if (!strcmp(r, "-")) {
+-            break;
++            r = getenv(arginfo->env);
++            if (r != NULL) {
++                arginfo->handle_opt(r);
++            }
+         }
+-        /* Treat --foo the same as -foo.  */
+-        if (r[0] == '-') {
++
++        optind = 1;
++        for (;;) {
++            if (optind >= *argc) {
++                break;
++            }
++            r = argv[optind];
++            if (r[0] != '-') {
++                break;
++            }
++            optind++;
+             r++;
+-        }
++            if (!strcmp(r, "-")) {
++               break;
++            }
++            /* Treat --foo the same as -foo.  */
++            if (r[0] == '-') {
++                r++;
++            }
+ 
+-        for (arginfo = arg_table; arginfo->handle_opt != NULL; arginfo++) {
+-            if (!strcmp(r, arginfo->argv)) {
+-                if (arginfo->has_arg) {
+-                    if (optind >= argc) {
+-                        (void) fprintf(stderr,
+-                            "qemu: missing argument for option '%s'\n", r);
+-                        exit(EXIT_FAILURE);
++            for (arginfo = arg_table; arginfo->handle_opt != NULL; arginfo++) {
++                if (!strcmp(r, arginfo->argv)) {
++                    if (arginfo->has_arg) {
++                        if (optind >= *argc) {
++                             (void) fprintf(stderr,
++                                "qemu: missing argument for option '%s'\n", r);
++                             exit(EXIT_FAILURE);
++                        }
++                        arginfo->handle_opt(argv[optind]);
++                        optind++;
++                    } else {
++                          arginfo->handle_opt(NULL);
+                     }
+-                    arginfo->handle_opt(argv[optind]);
+-                    optind++;
+-                } else {
+-                    arginfo->handle_opt(NULL);
++                    break;
+                 }
+-                break;
++            }
++
++            /* no option matched the current argv */
++            if (arginfo->handle_opt == NULL) {
++                (void) fprintf(stderr, "qemu: unknown option '%s'\n", r);
++                exit(EXIT_FAILURE);
+             }
+         }
+ 
+-        /* no option matched the current argv */
+-        if (arginfo->handle_opt == NULL) {
+-            (void) fprintf(stderr, "qemu: unknown option '%s'\n", r);
++        if (optind >= *argc) {
++            (void) fprintf(stderr, "qemu: no user program specified\n");
+             exit(EXIT_FAILURE);
+         }
+-    }
+ 
+-    if (optind >= argc) {
+-        (void) fprintf(stderr, "qemu: no user program specified\n");
+-        exit(EXIT_FAILURE);
++        exec_path = argv[optind];
+     }
++    else
++    {
++        const short binaryenvlen = strlen("QEMU_ORIGINAL_BINARY=");
++        char** wrk;
++        int j;
++
++        //Find the QEMU_ORIGINAL_BINARY environment variable, if we've
++        //reached this code branch, it definitely exists.
++        for (wrk=environ; *wrk != NULL; wrk++)
++        {
++            if (!strncmp(*wrk, "QEMU_ORIGINAL_BINARY=", binaryenvlen))
++                break;
++        }
++
++        *argc = (*argc)+1;
++        *newargv = calloc(*argc,sizeof(char*));
++
++        (*newargv)[0] = strdup(argv[0]);
++        (*newargv)[1] = strdup((*wrk)[binaryenvlen]);
++        for (j=1; j<(*argc)-1; j++)
++            (*newargv)[j+1] = strdup(argv[j]);
+ 
+-    exec_path = argv[optind];
++        exec_path = strdup((*wrk)[binaryenvlen]);
++
++        return 1;
++    }
+ 
+     return optind;
+ }
+@@ -630,6 +663,9 @@
+     int execfd;
+     int log_mask;
+     unsigned long max_reserved_va;
++    char* binaryenvstr;
++    char** newargv = NULL;
++    const short binaryenvlen = strlen("QEMU_ORIGINAL_BINARY=");
+ 
+     error_init(argv[0]);
+     module_call_init(MODULE_INIT_TRACE);
+@@ -659,7 +695,20 @@
+     qemu_add_opts(&qemu_trace_opts);
+     qemu_plugin_add_opts();
+ 
+-    optind = parse_args(argc, argv);
++    optind = parse_args(&argc, argv, environ, &newargv);
++
++    if (newargv != NULL)
++        argv = newargv;
++
++    /* set a QEMU_ORIGINAL_BINARY=/path/to/binary so that in cases
++       of a call to /proc/self/exe, the real path is known. I set it
++       in the current environment and in the called program's
++       environment -- just to be safe. */
++    binaryenvstr=calloc(binaryenvlen+strlen(exec_path)+1, sizeof(char));
++    strncpy(binaryenvstr, "QEMU_ORIGINAL_BINARY=", binaryenvlen+1);
++    strncat(binaryenvstr, exec_path, strlen(exec_path));
++    (void) envlist_setenv(envlist, binaryenvstr);
++    setenv("QEMU_ORIGINAL_BINARY", binaryenvstr+binaryenvlen, true);
+ 
+     log_mask = last_log_mask | (enable_strace ? LOG_STRACE : 0);
+     if (log_mask) {
