@@ -6,9 +6,9 @@
 
 _target="arm-linux-gnueabihf"
 pkgname=${_target}-gcc-stage2
-pkgver=10.1.0
+pkgver=10.2.0
 _majorver=${pkgver%%.*}
-_islver=0.21
+_islver=0.23
 pkgrel=1
 pkgdesc="The GNU Compiler Collection. Stage 2 for toolchain building (${_target})"
 arch=(i686 x86_64)
@@ -26,9 +26,9 @@ validpgpkeys=(F3691687D867B81B51CE07D9BBE43771487328A9  # bpiotrowski@archlinux.
               86CFFCA918CF3AF47147588051E8B148A9999C34  # evangelos@foutrelis.com
               13975A70E63C361C73AE69EF6EEB81F8981C74C7  # richard.guenther@gmail.com
               33C235A34C46AA3FFB293709A328C3A2C3C45C06) # Jakub Jelinek <jakub@redhat.com>
-sha256sums=('b6898a23844b656f1b68691c5c012036c2e694ac4b53a8918d4712ad876e7ea2'
+sha256sums=('b8dd4368bb9c7f0b98188317ee0254dd8cc99d1e3a18d0ff146c855fe16c1d8c'
             'SKIP'
-            '777058852a3db9500954361e294881214f6ecd4b594c00da5eee974cd6a54960'
+            '5efc53efaef151301f4e7dde3856b66812d8153dede24fab17673f801c8698f2'
             '1ef190ed4562c4db8c1196952616cd201cfdd788b65f302ac2cc4dabb4d72cee')
 
 prepare() {
