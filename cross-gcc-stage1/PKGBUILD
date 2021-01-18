@@ -4,21 +4,21 @@
 # Contributor: Kevin Mihelich <kevin@archlinuxarm.org>
 # Maintainer: Tavian Barnes <tavianator@tavianator.com>
 
+#This is a triplet that defines the target machine. Typically, it's going to
+#be something like ${arch}-linux-eabi. ARM with hardware floating point is an
+#exception.
 _target="arm-linux-gnueabihf"
-pkgname=${_target}-gcc-stage2
+pkgname=${_target}-gcc-stage1
 pkgver=10.2.0
 _majorver=${pkgver%%.*}
 _islver=0.23
 pkgrel=1
-pkgdesc="The GNU Compiler Collection. Stage 2 for toolchain building (${_target})"
+pkgdesc="The GNU Compiler Collection. Stage 1 for toolchain building (${_target})"
 arch=(i686 x86_64)
 license=(GPL LGPL FDL custom)
 url='https://gcc.gnu.org'
-depends=("${_target}-binutils>=2.34-3" "${_target}-glibc-headers>=2.31-3" libmpc zlib)
+depends=("${_target}-binutils>=2.34-3" libmpc zlib)
 options=(!emptydirs !distcc !strip)
-conflicts=("${_target}-gcc-stage1")
-replaces=("${_target}-gcc-stage1")
-provides=("${_target}-gcc-stage1=${pkgver}")
 source=(https://sourceware.org/pub/gcc/releases/gcc-${pkgver}/gcc-${pkgver}.tar.xz{,.sig}
         http://isl.gforge.inria.fr/isl-${_islver}.tar.xz
         fs64270.patch)
@@ -30,7 +30,6 @@ sha256sums=('b8dd4368bb9c7f0b98188317ee0254dd8cc99d1e3a18d0ff146c855fe16c1d8c'
             'SKIP'
             '5efc53efaef151301f4e7dde3856b66812d8153dede24fab17673f801c8698f2'
             '1ef190ed4562c4db8c1196952616cd201cfdd788b65f302ac2cc4dabb4d72cee')
-
 prepare() {
   [[ ! -d gcc ]] && ln -s gcc-${pkgver/+/-} gcc
   cd gcc
@@ -69,6 +68,7 @@ build() {
       --libdir=/usr/lib \
       --libexecdir=/usr/lib \
       --disable-nls \
+      --with-newlib \
       --enable-languages=c,c++ \
       --with-isl \
       --with-linker-hash-style=gnu \

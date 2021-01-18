@@ -6,6 +6,9 @@
 # Contributor: Felipe Balbi <felipe@balbi.sh>
 # Maintainer: Tavian Barnes <tavianator@tavianator.com>
 
+#This is a triplet that defines the target machine. Typically, it's going to
+#be something like ${arch}-linux-eabi. ARM with hardware floating point is an
+#exception.
 _target="arm-linux-gnueabihf"
 pkgname=${_target}-binutils
 pkgver=2.35.1
