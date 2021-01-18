@@ -5,3 +5,5 @@
 *.sig
 src/*
 pkg/*
+*/repos
+*/trunk
