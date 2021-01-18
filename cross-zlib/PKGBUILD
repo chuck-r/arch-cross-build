@@ -1,15 +1,16 @@
 # Maintainer: Pierre Schmitz <pierre@archlinux.de>
 
+_target=arm-linux-gnueabihf
 pkgbase=zlib
-pkgname=(zlib minizip)
+pkgname=(${_target}-zlib ${_target}-minizip)
 epoch=1
 pkgver=1.2.11
 pkgrel=4
-arch=('x86_64')
+arch=('x86_64' 'armv7h')
 license=('custom')
 url="https://www.zlib.net/"
 depends=('glibc')
-options=('staticlibs')  # needed by binutils testsuite
+options=('staticlibs' '!strip' 'debug')  # needed by binutils testsuite
 source=("https://zlib.net/zlib-${pkgver}.tar.gz"{,.asc})
 md5sums=('1c9f62f0778697a09d36121ead88e08e'
          'SKIP')
@@ -21,15 +22,19 @@ prepare() {
 }
 
 build() {
+        echo CC=$CC
+        echo CXX=$CXX
+        echo CFLAGS=$CFLAGS
+        echo CXXFLAGS=$CXXFLAGS
 	cd ${srcdir}/zlib-$pkgver
-	./configure --prefix=/usr
+	./configure --prefix=/usr/${_target}
 	make
 
 	cd contrib/minizip
 	cp Makefile Makefile.orig
 	cp ../README.contrib readme.txt
 	autoreconf --install
-	./configure --prefix=/usr --enable-static=no
+	./configure --prefix=/usr/${_target} --enable-static=yes
 	make
 }
 
@@ -38,25 +43,29 @@ check() {
 	make test
 
 	cd contrib/minizip
-	make -f Makefile.orig test
+	#Patch minizip Makefile to make tests work with cross-compiling
+	sed -i '/CC=cc/d' Makefile.orig
+	sed -i "s|CFLAGS=-O -I../..|CFLAGS+=-O -I../..|" Makefile.orig
+	make V=1 -f Makefile.orig test
 }
 
-package_zlib() {
+package_arm-linux-gnueabihf-zlib() {
 	pkgdesc='Compression library implementing the deflate compression method found in gzip and PKZIP'
 
 	cd ${srcdir}/zlib-$pkgver
 	make install DESTDIR=${pkgdir}
-	install -D -m644 LICENSE ${pkgdir}/usr/share/licenses/zlib/LICENSE
+        rm -Rf ${pkgdir}/usr/${_target}/share
+	install -D -m644 LICENSE ${pkgdir}/usr/${_target}/share/licenses/zlib/LICENSE
 }
 
-package_minizip() {
+package_arm-linux-gnueabihf-minizip() {
 	pkgdesc='Mini zip and unzip based on zlib'
-	depends=('zlib')
+	depends=('arm-linux-gnueabihf-zlib')
 
 	cd ${srcdir}/zlib-$pkgver/contrib/minizip
 	make install DESTDIR=${pkgdir}
-	install -D -m644 ${srcdir}/zlib-$pkgver/LICENSE ${pkgdir}/usr/share/licenses/minizip/LICENSE
+	install -D -m644 ${srcdir}/zlib-$pkgver/LICENSE ${pkgdir}/usr/${_target}/share/licenses/minizip/LICENSE
 
 	# https://github.com/madler/zlib/pull/229
-	rm ${pkgdir}/usr/include/minizip/crypt.h
+	rm ${pkgdir}/usr/${_target}/include/minizip/crypt.h
 }
