@@ -6,6 +6,12 @@
 
 # toolchain build order: linux-api-headers->glibc->binutils->gcc->binutils->glibc
 
+# For building other architectures, replace 'arm' with one of the architecture
+# values from Linux:
+#
+# alpha arc arm arm64 c6x csky h8300 hexagon ia64 m68k microblaze mips nds32
+# nios2 openrisc parisc powerpc riscv s390 sh sparc um x86 xtensa
+
 _target_arch=arm
 _target=${_target_arch}-linux-gnueabihf
 pkgname=${_target}-linux-api-headers
