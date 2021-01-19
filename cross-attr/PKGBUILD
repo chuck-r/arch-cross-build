@@ -1,0 +1,37 @@
+# Maintainer: Thomas Bächler <thomas@archlinux.org>
+
+_target=arm-linux-gnueabihf
+pkgname=${_target}-attr
+pkgver=2.4.48
+pkgrel=3
+pkgdesc='Extended attribute support library for ACL support'
+arch=('x86_64' 'armv7h')
+url='https://savannah.nongnu.org/projects/attr'
+license=('LGPL')
+depends=("${_target}-glibc")
+makedepends=("gettext")
+replaces=("${_target}-xfsattr")
+provides=("${_target}-xfsattr" "${_target}-libattr.so")
+conflicts=("${_target}-xfsattr")
+backup=("usr/${_target}/etc/xattr.conf")
+validpgpkeys=('600CD204FBCEA418BD2CA74F154343260542DF34'  # Brandon Philips <brandon@ifup.co>
+              'B902B5271325F892AC251AD441633B9FE837F581') # Frysinger <vapier@gentoo.org>
+source=("https://download.savannah.gnu.org/releases/attr/attr-${pkgver}.tar.gz"{,.sig})
+sha256sums=('5ead72b358ec709ed00bbf7a9eaef1654baad937c001c044fe8b74c57f5324e7'
+            'SKIP')
+options=('debug' '!strip' 'staticlibs')
+
+build() {
+  cd attr-$pkgver
+
+  ./configure \
+    --host=${_target} \
+    --prefix=/usr/${_target}
+  make
+}
+
+package() {
+  cd attr-$pkgver
+
+  make DESTDIR="${pkgdir}" install
+}
