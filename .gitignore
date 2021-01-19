@@ -3,7 +3,7 @@
 *.gz
 *.bz2
 *.sig
-src/*
-pkg/*
+*/src
+*/pkg
 */repos
 */trunk
