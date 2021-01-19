@@ -22,10 +22,6 @@ prepare() {
 }
 
 build() {
-        echo CC=$CC
-        echo CXX=$CXX
-        echo CFLAGS=$CFLAGS
-        echo CXXFLAGS=$CXXFLAGS
 	cd ${srcdir}/zlib-$pkgver
 	./configure --prefix=/usr/${_target}
 	make
