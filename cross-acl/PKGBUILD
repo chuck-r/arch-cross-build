@@ -1,0 +1,35 @@
+# Maintainer: Thomas Bächler <thomas@archlinux.org>
+
+_target=arm-linux-gnueabihf
+pkgname=${_target}-acl
+pkgver=2.2.53
+pkgrel=3
+pkgdesc='Access control list utilities, libraries and headers'
+arch=('x86_64' 'armv7h')
+url='https://savannah.nongnu.org/projects/acl'
+license=('LGPL')
+depends=("${_target}-attr")
+replaces=("${_target}-xfsacl")
+provides=("${_target}-xfsacl" "${_target}-libacl.so")
+conflicts=("${_target}-xfsacl")
+validpgpkeys=('600CD204FBCEA418BD2CA74F154343260542DF34'  # Brandon Philips <brandon@ifup.co>
+              'B902B5271325F892AC251AD441633B9FE837F581') # Frysinger <vapier@gentoo.org>
+source=("https://download.savannah.gnu.org/releases/acl/acl-${pkgver}.tar.gz"{,.sig})
+sha256sums=('06be9865c6f418d851ff4494e12406568353b891ffe1f596b34693c387af26c7'
+            'SKIP')
+options=('debug' '!strip' 'staticlibs')
+
+build() {
+  cd acl-$pkgver
+
+  ./configure \
+    --prefix=/usr/${_target} \
+    --host=${_target}
+  make
+}
+
+package() {
+  cd acl-$pkgver
+
+  make DESTDIR="${pkgdir}" install
+}
