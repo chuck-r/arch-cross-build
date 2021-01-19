@@ -45,7 +45,7 @@ check() {
 	make V=1 -f Makefile.orig test
 }
 
-package_arm-linux-gnueabihf-zlib() {
+package_zlib() {
 	pkgdesc='Compression library implementing the deflate compression method found in gzip and PKZIP'
 
 	cd ${srcdir}/zlib-$pkgver
@@ -54,7 +54,7 @@ package_arm-linux-gnueabihf-zlib() {
 	install -D -m644 LICENSE ${pkgdir}/usr/${_target}/share/licenses/zlib/LICENSE
 }
 
-package_arm-linux-gnueabihf-minizip() {
+package_minizip() {
 	pkgdesc='Mini zip and unzip based on zlib'
 	depends=('arm-linux-gnueabihf-zlib')
 
@@ -65,3 +65,7 @@ package_arm-linux-gnueabihf-minizip() {
 	# https://github.com/madler/zlib/pull/229
 	rm ${pkgdir}/usr/${_target}/include/minizip/crypt.h
 }
+
+eval "package_${_target}-zlib() { package_zlib; }"
+
+eval "package_${_target}-minizip() { package_minizip; }"
