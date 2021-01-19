@@ -1,0 +1,77 @@
+# Maintainer: Ronald van Haren <ronald.archlinux.org>
+# Contributor: Judd <jvinet@zeroflux.org>
+
+_target=arm-linux-gnueabihf
+pkgbase=bzip2
+pkgname=bzip2
+if [ "x${_target}" != "x" ]; then
+  pkgbase=$pkgname
+  pkgname=${_target}-${pkgbase}
+fi
+pkgver=1.0.8
+pkgrel=4
+pkgdesc="A high-quality data compression program"
+arch=('x86_64' 'armv7h')
+license=('BSD')
+url="https://sourceware.org/bzip2/"
+depends=('glibc' 'sh')
+provides=('libbz2.so')
+source=(https://sourceware.org/pub/bzip2/$pkgbase-$pkgver.tar.gz{,.sig}
+        bzip2.pc)
+sha256sums=('ab5a03176ee106d3f0fa90e381da478ddae405918153cca248e682cd0c4a2269'
+            'SKIP'
+            '42028f5a82ca47d7b51a2ebf981dd507d07f5b4ec83742181765c0fbc14e312d')
+validpgpkeys=('EC3CFE88F6CA0788774F5C1D1AA44BE649DE760A') # Mark Wielaard <mark@klomp.org>
+options=('staticlibs' 'debug' '!strip')
+
+prepare() {
+  cd $pkgbase-$pkgver
+  cp ../bzip2.pc bzip2.pc
+  sed "s|@VERSION@|$pkgver|" -i bzip2.pc
+  if [ "x${_target}" != "x" ]; then
+    sed "s|@CROSS@|/${_target}|" -i bzip2.pc
+    sed "s|^CC=gcc|CC=$CC|" -i Makefile Makefile-libbz2_so
+    sed "s|^AR=ar|AR=${_target}-ar|" -i Makefile
+    sed "s|^RANLIB=ranlib|RANLIB=${_target}-ranlib|" -i Makefile
+    sed "s|^LDFLAGS=|LDFLAGS=$LDFLAGS|" -i Makefile
+    sed -r "s|^CFLAGS=(.*)|CFLAGS=$CFLAGS \1|" -i Makefile Makefile-libbz2_so
+  fi
+}
+
+build() {
+  cd $pkgbase-$pkgver
+
+  make -f Makefile-libbz2_so CC="$CC $CFLAGS $CPPFLAGS $LDFLAGS"
+  make bzip2 bzip2recover libbz2.a CC="$CC $CFLAGS $CPPFLAGS $LDFLAGS"
+}
+
+check() {
+  cd $pkgbase-$pkgver
+  make test
+}
+
+package() {
+  cd $pkgbase-$pkgver
+
+  install -dm755 "$pkgdir"/usr/${_target}/{bin,lib,include,share/man/man1}
+
+  install -m755 bzip2-shared "$pkgdir"/usr/${_target}/bin/bzip2
+  install -m755 bzip2recover bzdiff bzgrep bzmore "$pkgdir"/usr/${_target}/bin
+  ln -sf bzip2 "$pkgdir"/usr/${_target}/bin/bunzip2
+  ln -sf bzip2 "$pkgdir"/usr/${_target}/bin/bzcat
+
+  cp -a libbz2.so* "$pkgdir"/usr/${_target}/lib
+  ln -s libbz2.so.$pkgver "$pkgdir"/usr/${_target}/lib/libbz2.so
+  ln -s libbz2.so.$pkgver "$pkgdir"/usr/${_target}/lib/libbz2.so.1 # For compatibility with some other distros
+  cp -a libbz2.a "$pkgdir"/usr/${_target}/lib
+
+  install -m644 bzlib.h "$pkgdir"/usr/${_target}/include/
+
+  install -m644 bzip2.1 "$pkgdir"/usr/${_target}/share/man/man1/
+  ln -sf bzip2.1 "$pkgdir"/usr/${_target}/share/man/man1/bunzip2.1
+  ln -sf bzip2.1 "$pkgdir"/usr/${_target}/share/man/man1/bzcat.1
+  ln -sf bzip2.1 "$pkgdir"/usr/${_target}/share/man/man1/bzip2recover.1
+
+  install -Dm644 bzip2.pc -t "$pkgdir"/usr/${_target}/lib/pkgconfig
+  install -Dm644 LICENSE "$pkgdir"/usr/${_target}/share/licenses/${pkgbase}/LICENSE
+}
